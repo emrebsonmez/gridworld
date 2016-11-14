@@ -53,7 +53,7 @@ public class GridWorld {
             pathString += coordinateString;
         }
         System.out.println(pathString);
-        System.out.println("Reward: " + reward);
+        System.out.println("Reward: " + reward + " (steps: " + path.size() + ")");
     }
 
     // returns true if coordinate in bounds of board
