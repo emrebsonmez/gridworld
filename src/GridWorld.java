@@ -2,10 +2,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 public class GridWorld {
-    private int[][] board;
+    private int[][] gridWorld;
     private HashSet<ArrayList<int[]>> allPaths = new HashSet<>();
     private ArrayList<int[]> optimalPath;
     private int maxReward = -100000;
+
+    public GridWorld(int[][] gridWorld) {
+        this.gridWorld = gridWorld;
+    }
 
     private ArrayList<int[]> deepCopy(ArrayList<int[]> oldList) {
         ArrayList<int[]> newList = new ArrayList<>();
@@ -24,21 +28,10 @@ public class GridWorld {
         return false;
     }
 
-    public GridWorld() {
-        int[] startRow = {0,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-        int[] emptyRow = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-        int[] goalRow1 = {-1,-1,-1,-1,-1,-1,-1,-1,100,-1};
-        int[] goalRow2 = {-1,-1,-1,-1,-1,100,-1,-1,-1,-1};
-        int[] goalRow3 = {-1,-1,-1,-1,-1,-1,-1,-1,-1,100};
-        int[] goalRow4 = {-1,-1,100,-1,-1,-1,-1,-1,-1,-1};
-
-        this.board = new int[][]{startRow, goalRow1, emptyRow, emptyRow, goalRow2, emptyRow, goalRow3, emptyRow, emptyRow, goalRow4};
-    }
-
     private int getReward(ArrayList<int[]> path) {
         int reward = 0;
         for (int[] coordinate : path) {
-            reward += board[coordinate[0]][coordinate[1]];
+            reward += gridWorld[coordinate[0]][coordinate[1]];
         }
         return reward;
     }
@@ -56,13 +49,13 @@ public class GridWorld {
         System.out.println("Reward: " + reward + " (steps: " + path.size() + ")");
     }
 
-    // returns true if coordinate in bounds of board
-    // assumes board is square
+    // returns true if coordinate in bounds of gridWorld
+    // assumes gridWorld is square
     private boolean inBounds(int[] coordinate) {
         int x = coordinate[0];
         int y = coordinate[1];
-        boolean xInBounds = (x < board.length && x >= 0);
-        boolean yInBounds = (y < board.length && y >= 0);
+        boolean xInBounds = (x < gridWorld.length && x >= 0);
+        boolean yInBounds = (y < gridWorld.length && y >= 0);
         return xInBounds && yInBounds;
     }
 
@@ -92,7 +85,7 @@ public class GridWorld {
         int y = coordinate[1];
 
         // If goal is reached, record path and update maxReward.
-        if (board[x][y] == 100) {
+        if (gridWorld[x][y] == 100) {
             System.out.println("Goal reached.");
             allPaths.add(pathToCurrentDeepCopy);
             printPath(pathToCurrentDeepCopy, currentReward);
@@ -113,14 +106,4 @@ public class GridWorld {
         copyAndVisit(up, pathToCurrent);
         copyAndVisit(down, pathToCurrent);
     }
-
-
-    public static void main(String[] args) {
-        GridWorld gridWorld = new GridWorld();
-        ArrayList<int[]> pathToCurrent = new ArrayList<>();
-        int[] start = {0,0};
-        pathToCurrent.add(start);
-        gridWorld.enumeratePolicies(start, pathToCurrent);
-    }
-
 }
