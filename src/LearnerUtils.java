@@ -42,7 +42,7 @@ public class LearnerUtils {
         return r.nextInt(limit);
     }
 
-    protected ArrayList<int[]> getValidCells(int x, int y, int[][] maze) {
+    protected ArrayList<int[]> getValidCells(int x, int y, double[][] maze) {
         ArrayList<int[]> cells = new ArrayList<>();
         if(x+1 < maze.length){
             int[] ret = new int[2];
@@ -112,7 +112,7 @@ public class LearnerUtils {
      * @return
      * @throws MazeException
      */
-    protected int[] maxQCell(int[] from, int[][] maze, double[][][] Q) throws MazeException {
+    protected int[] maxQCell(int[] from, double[][] maze, double[][][] Q) throws MazeException {
         int[] ret = new int[2];
         double max = Double.NEGATIVE_INFINITY;
         ArrayList<int[]> valid = getValidCells(from[0],from[1],maze);
@@ -170,7 +170,7 @@ public class LearnerUtils {
         throw new MazeException("Invalid cell to obtain reward from (" + x + ", " + y + ")");
     }
 
-    protected int[] greedy(int[] cell, int[][] maze, double[][][] Q, double epsilon) throws MazeException {
+    protected int[] greedy(int[] cell, double[][] maze, double[][][] Q, double epsilon) throws MazeException {
         int randomNum = randomInt(100, new Random());
         if(randomNum < epsilon) {
             ArrayList<int[]> validCells = getValidCells(cell[0],cell[1],maze);

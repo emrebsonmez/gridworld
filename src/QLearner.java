@@ -17,7 +17,7 @@ public class QLearner {
     private double currentMaxReward = 0;
 
     // Grid
-    private ArrayList<int[][]> gridWorlds;
+    private ArrayList<double[][]> gridWorlds;
 
     // Starting coordinates
     private int startX;
@@ -43,7 +43,7 @@ public class QLearner {
             double goalGamma,
             int stepValue,
             double stepGamma,
-            ArrayList<int[][]> gridWorlds,
+            ArrayList<double[][]> gridWorlds,
             int startX,
             int startY,
             double alpha,
@@ -64,20 +64,14 @@ public class QLearner {
         learnerUtils = new LearnerUtils();
     }
 
-    public void runQLearner(int runs, int gridWorldIndex) throws MazeException {
+    public void runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode) throws MazeException {
         ArrayList<Integer> log = new ArrayList<>();
         int maxReward = -10000;
 
-        System.out.println("grid world index " + gridWorldIndex);
-        int[][] gridWorld = gridWorlds.get(gridWorldIndex);
-        for (int u = 0; u < 5; u++) {
-            for (int v = 0; v < 5; v++) {
-//                System.out.println(gridWorld[u][v]);
-            }
-        }
+        double[][] gridWorld = gridWorlds.get(gridWorldIndex);
 
         // only run once if run will not terminate
-        int adjustedRuns = this.terminateAtGoalState ? runs : 1;
+        int adjustedRuns = (this.terminateAtGoalState && !useFirstEpisode) ? runs : 1;
         for(int i = 0; i < adjustedRuns; i++) {
             int steps = 0;
             int[] current = new int[]{startX, startY};
@@ -88,16 +82,20 @@ public class QLearner {
             visited.add(current);
 
             boolean terminate = false;
-
+            if (i == adjustedRuns - 1 && !this.terminateAtGoalState) {
+                setCurrentMaxReward(-1000);
+            }
             while (!terminate) {
                 int[] next = learnerUtils.greedy(current, gridWorld, Q, epsilon);
                 int direction = learnerUtils.getDirection(current,next);
-                int reward = gridWorld[next[0]][next[1]];
+                double reward = gridWorld[next[0]][next[1]];
+
+                // 1) 100 episodes of learning, when I hit goal state start over - test (done)
+                // 2) exit after one iteration, return value
+                // 3) run 100 episodes, fixed length
 
                 // if reward hit and program should terminate at goal state, break
                 if (reward >= this.goalValue && this.terminateAtGoalState) {
-                    // goal hit
-                    System.out.println("Hit goal!");
                     terminate = true;
                 }
                 // otherwise, terminate if steps greater than configured numsteps
@@ -130,7 +128,6 @@ public class QLearner {
                 optimalPath = visited;
                 double calculatedReward = getReward(optimalPath, gridWorld);
 //                System.out.println("  Calculated reward: " + calculatedReward);
-//                System.out.println("  " + path);
                 this.currentMaxReward = calculatedReward;
             }
             log.add(steps);
@@ -143,13 +140,13 @@ public class QLearner {
      * @param myGrid
      * @return
      */
-    public double getReward(ArrayList<int[]> path, int[][] myGrid) {
+    public double getReward(ArrayList<int[]> path, double[][] myGrid) {
         double reward = 0.0;
         double runningGamma = 1;
         for (int[] cell : path) {
             int x = cell[0];
             int y = cell[1];
-            int value = myGrid[x][y];
+            double value = myGrid[x][y];
             if (value >= this.goalValue) {
                 runningGamma = this.goalGamma * runningGamma;
             } else {
@@ -172,7 +169,7 @@ public class QLearner {
      * @param direction
      * @param r
      */
-    void updateQ(int x, int y, int nextX, int nextY, int direction, int r, int[][] gridWorld) {
+    void updateQ(int x, int y, int nextX, int nextY, int direction, double r, double[][] gridWorld) {
         double newGamma;
 
         if (gridWorld[x][y] == 100) {
@@ -201,7 +198,7 @@ public class QLearner {
         return goalGamma;
     }
 
-    public void setGoalGamma(int goalGamma) {
+    public void setGoalGamma(double goalGamma) {
         this.goalGamma = goalGamma;
     }
 
