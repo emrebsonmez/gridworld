@@ -13,18 +13,9 @@ public class Main {
         this.populateGridWorlds();
     }
 
-    public static void main(String[] args) throws MazeException {
-//        int individualRuns = 1000;
-//        int overallRuns = 20;
-        System.out.println("Starting runs...");
-        Main main = new Main();
-        main.runQ();
-        System.out.println("Runs finished.");
-    }
-
-
     /**
-     * Create grid worlds used for q-learning.
+     * Create four grid worlds (each with one goal state) and one grid world
+     * that is the average of the four original grid worlds.
      */
     private void populateGridWorlds() {
         double[] startRow = {0,-1,-1,-1,-1};
@@ -54,7 +45,7 @@ public class Main {
     }
 
     /**
-     * Creates an average of the 4
+     * Get an averaged grid world from the four original grid worlds.
      * @param gridWorld
      * @param reward
      * @param numRewards
@@ -77,24 +68,29 @@ public class Main {
     }
 
 
-
+    /**
+     * Execute the following algorithm:
+     *   1) Run q-learning on each individual grid world. Get the q matrix.
+     *      Using this q matrix to initialize the qLearner, get the reward
+     *      of one episode for each of the four grid worlds. Average the
+     *      four rewards.
+     *
+     *   2) Run q-learning on the averaged grid world. Get the q matrix.
+     *      Using this q matrix to initialize the qLearner, get the reward
+     *      of one episode for each of the four grid worlds. Average the
+     *      four rewards.
+     *
+     * The goal is to figure out whether the policy generated in (2) does
+     * better, on average, than any policy generated in (1).
+     *
+     * @throws MazeException
+     */
     private void runQ() throws MazeException {
-        // Proof steps:
-        //   1. Run q-learning on each individual grid world. Get the reward. Average rewards for all four gridWorlds.
-        //   2. Run q-learning on averaged maze. Get the Q matrix. Return reward.
-        //   3. Using the q-matrix, calculate the reward for each individual grid world using that Q matrix and average.
-        //       Only use first episode.®
-        //   4. Confirm the average in 2 should be same as average out of 3.
-
-        // 2 and 3should be less than 1
-        // Does averaged matrix in 2 do better than any single policy found in one?
-
-        // Step 1
-        boolean terminateAtGoalState = true;
+        boolean terminateAtGoalState = true; // exit episode if goal state is reached
         int numSteps = 10000;
-        int goalValue = 24;
+        int goalValue = 24; // this is the minimum threshold that defines a goal
         int stepValue = -1;
-        double goalGamma = 0; // averaged problem: 0.75
+        double goalGamma = 0;
         double stepGamma = .99;
         int startX = 0;
         int startY = 0;
@@ -104,13 +100,21 @@ public class Main {
         QLearner qLearner = new QLearner(terminateAtGoalState, numSteps, goalValue, goalGamma, stepValue, stepGamma,
                 this.gridWorlds, startX, startY, alpha, epsilon);
 
+        // Part 1. Run learning on individual grid worlds with 1000 runs.
         this.runLearningOnIndividualGridWorlds(qLearner, 1000);
+
+        // Part 2. Run learning on averaged grid world.
         this.runLearningOnAveragedGridWorld(qLearner);
     }
 
     /**
-     * gets Q matrix by running numTrials of qLearning
+     * 1. Gets Q matrix by running numTrials of qLearning on individual grid worlds.
+     * 2. Uses this matrix as a policy for each of the four grid worlds and gets the
+     *    reward of the policy for each one. The four rewards are averaged.
+     * 3. Part 2 is executed 100 times and the average is returned.
+     *
      * @param qLearner
+     * @param numTrials
      * @throws MazeException
      */
     private void runLearningOnIndividualGridWorlds(QLearner qLearner, int numTrials) throws MazeException {
@@ -123,11 +127,23 @@ public class Main {
             qLearner.runQLearner(numTrials, i, false);
             double[][][] q = qLearner.getQ();
             double reward = qLearner.getCurrentMaxReward();
-            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, 100);
+            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, 10);
             System.out.println("Averaged reward across 4 mazes, policy generated from maze " + i + ": "  + averagedReward);
         }
     }
 
+    /**
+     * 1. Gets Q matrix by running numTrials of qLearning on
+     *    averaged grid world.
+     * 2. Uses this matrix as a policy for each of the four
+     *    grid worlds and gets the reward of the policy for
+     *    each one. The four rewards are averaged.
+     * 3. Part 2 is executed 100 times and the average is
+     *    returned.
+     *
+     * @param qLearner
+     * @throws MazeException
+     */
     private void runLearningOnAveragedGridWorld(QLearner qLearner) throws MazeException {
         double[][][] emptyQ = new double[5][5][4];
         qLearner.setQ(emptyQ);
@@ -141,10 +157,23 @@ public class Main {
         double[][][] qSaved = qLearner.getQ();
         qLearner.setTerminateAtGoalState(true);
         qLearner.setGoalGamma(0);
-        double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, 100);
+        double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, 10);
         System.out.println("Averaged reward across 4 mazes, policy generated from average of 4 mazes :" + averagedReward);
     }
 
+    /**
+     * 1. Uses a Q matrix to initialize the learner and then calculates
+     *    the reward of using this policy on each of the four grid worlds.
+     * 2. The four rewards are averaged.
+     * 3. Steps 1 and 2 are repeated numRuns times and the average of the
+     *    runs is returned.
+     *
+     * @param qLearner
+     * @param qInitial
+     * @param numRuns
+     * @return
+     * @throws MazeException
+     */
     private double runMazesWithQMatrixAndGetAverageReward(QLearner qLearner, double[][][] qInitial, int numRuns) throws MazeException {
         double cumulativeRewardSum = 0;
 
@@ -162,6 +191,11 @@ public class Main {
         }
 
         return cumulativeRewardSum / numRuns;
+    }
+
+    public static void main(String[] args) throws MazeException {
+        Main main = new Main();
+        main.runQ();
     }
 
 }

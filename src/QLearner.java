@@ -90,14 +90,11 @@ public class QLearner {
                 int direction = learnerUtils.getDirection(current,next);
                 double reward = gridWorld[next[0]][next[1]];
 
-                // 1) 100 episodes of learning, when I hit goal state start over - test (done)
-                // 2) exit after one iteration, return value
-                // 3) run 100 episodes, fixed length
-
                 // if reward hit and program should terminate at goal state, break
                 if (reward >= this.goalValue && this.terminateAtGoalState) {
                     terminate = true;
                 }
+
                 // otherwise, terminate if steps greater than configured numsteps
                 else {
                     if (steps >= this.numSteps) {
@@ -114,20 +111,21 @@ public class QLearner {
 
             if (totalReward > maxReward) {
                 maxReward = totalReward;
-//                System.out.println("Path found with reward: " + maxReward + " (steps: " + steps + ")");
-                String path = "";
-                for (int[] cell: visited){
-                    if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
-                        path += " g:";
-                    } else {
-                        path += " ";
-                    }
-                    path += "("  + cell[0] + ", " + cell[1] + ")";
-                }
+
+                // uncomment to print path
+//                String path = "";
+//                for (int[] cell: visited){
+//                    if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
+//                        path += " g:";
+//                    } else {
+//                        path += " ";
+//                    }
+//                    path += "("  + cell[0] + ", " + cell[1] + ")";
+//                }
+//                System.out.println(path);
 
                 optimalPath = visited;
                 double calculatedReward = getReward(optimalPath, gridWorld);
-//                System.out.println("  Calculated reward: " + calculatedReward);
                 this.currentMaxReward = calculatedReward;
             }
             log.add(steps);
