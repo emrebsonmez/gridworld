@@ -6,6 +6,7 @@ public class GridWorld {
     private HashSet<ArrayList<int[]>> allPaths = new HashSet<>();
     private ArrayList<int[]> optimalPath;
     private int maxReward = -100000;
+    private int printCount = 0;
 
     public GridWorld(int[][] gridWorld) {
         this.gridWorld = gridWorld;
@@ -46,6 +47,7 @@ public class GridWorld {
             pathString += coordinateString;
         }
         System.out.println(pathString);
+        printCount++;
         System.out.println("Reward: " + reward + " (steps: " + path.size() + ")");
     }
 
@@ -65,6 +67,7 @@ public class GridWorld {
                 ArrayList<int[]> pathToCurrentDeepCopy = deepCopy(pathToCurrent);
                 pathToCurrentDeepCopy.add(target);
                 enumeratePolicies(target, pathToCurrentDeepCopy);
+                printPath(pathToCurrentDeepCopy, 100);
             }
         }
     }
@@ -105,5 +108,18 @@ public class GridWorld {
         copyAndVisit(right, pathToCurrent);
         copyAndVisit(up, pathToCurrent);
         copyAndVisit(down, pathToCurrent);
+    }
+
+    public int getPrintCount() {
+        return printCount;
+    }
+
+    public static void main(String[] args) {
+        int[][] gridWorldTest = new int[][]{{-1,-1,-1,-1},{-1,-1,-1,-1},{-1,-1,-1,-1},{-1,-1,-1,-1}};
+        GridWorld gridWorld = new GridWorld(gridWorldTest);
+        ArrayList<int[]> pathToCurrent = new ArrayList<>();
+        pathToCurrent.add(new int[] {2,3});
+        gridWorld.enumeratePolicies(new int[]{2, 3}, pathToCurrent);
+        System.out.println(gridWorld.getPrintCount());
     }
 }
