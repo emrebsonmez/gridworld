@@ -104,70 +104,8 @@ public class Main {
         QLearner qLearner = new QLearner(terminateAtGoalState, numSteps, goalValue, goalGamma, stepValue, stepGamma,
                 this.gridWorlds, startX, startY, alpha, epsilon);
 
-        qLearner.runQLearner(10000, 0, false);
-        double reward = qLearner.getCurrentMaxReward();
-        System.out.println("Running q-learning on maze 0. Reward: " + reward);
-
-        double[][][] emptyQ = new double[5][5][4];
-
-        qLearner.setQ(emptyQ);
-        qLearner.runQLearner(10000, 1, false);
-        double reward1 = qLearner.getCurrentMaxReward();
-        System.out.println("- Max reward, maze 1: " + reward1);
-        qLearner.setCurrentMaxReward(0);
-
-        qLearner.setQ(emptyQ);
-        qLearner.runQLearner(10000, 2, false);
-        double reward2 = qLearner.getCurrentMaxReward();
-        System.out.println("- Max reward, maze 2: " + reward2);
-        qLearner.setCurrentMaxReward(0);
-
-        qLearner.setQ(emptyQ);
-        qLearner.runQLearner(10000, 3, false);
-        double reward3 = qLearner.getCurrentMaxReward();
-        System.out.println("- Max reward, maze 3: " + reward3);
-        qLearner.setCurrentMaxReward(0);
-
-        double averagedReward = (reward + reward1 + reward2 + reward3) / 4;
-        System.out.println("*** Averaged reward (Step 1): " + averagedReward + " ***");
-
-        qLearner.setQ(emptyQ);
-        qLearner.setGoalGamma(0.75);
-        qLearner.setTerminateAtGoalState(false);
-        qLearner.runQLearner(1000, 4, false);
-
-        double[][][] Q_saved = qLearner.getQ();
-        qLearner.setTerminateAtGoalState(true);
-//        qLearner.setGoalGamma(0.75);
-//        qLearner.runQLearner(1, 4, true);
-//        double rewardQ = qLearner.getCurrentMaxReward();
-//        System.out.println("- Step 2 reward: " + rewardQ);
-
-        qLearner.setCurrentMaxReward(0);
-        qLearner.runQLearner(1, 0, true);
-        double rewardB = qLearner.getCurrentMaxReward();
-        System.out.println("- Intelligent reward, maze 0: " + rewardB);
-
-        qLearner.setCurrentMaxReward(0);
-        qLearner.setQ(Q_saved);
-        qLearner.runQLearner(1, 1, true);
-        double rewardB2 = qLearner.getCurrentMaxReward();
-        System.out.println("- Intelligent reward, maze 1: " + rewardB2);
-
-        qLearner.setCurrentMaxReward(0);
-        qLearner.setQ(Q_saved);
-        qLearner.runQLearner(1, 2, true);
-        double rewardB3 = qLearner.getCurrentMaxReward();
-        System.out.println("- Intelligent reward, maze 2: " + rewardB3);
-
-        qLearner.setCurrentMaxReward(0);
-        qLearner.setQ(Q_saved);
-        qLearner.runQLearner(1, 3, true);
-        double rewardB4 = qLearner.getCurrentMaxReward();
-        System.out.println("- Intelligent reward, maze 3: " + rewardB4);
-
-        double averagedReward2 = (rewardB + rewardB2 + rewardB3 + rewardB4) / 4;
-        System.out.println("*** Averaged reward (Step 2): " + averagedReward2 + " ***");
+        this.runLearningOnIndividualGridWorlds(qLearner, 1000);
+        this.runLearningOnAveragedGridWorld(qLearner);
     }
 
     /**
@@ -175,7 +113,7 @@ public class Main {
      * @param qLearner
      * @throws MazeException
      */
-    private void runLearning(QLearner qLearner, int numTrials) throws MazeException {
+    private void runLearningOnIndividualGridWorlds(QLearner qLearner, int numTrials) throws MazeException {
         double[][][] emptyQ = new double[5][5][4];
 
         System.out.println("Running q-learning on all four mazes.");
@@ -185,27 +123,45 @@ public class Main {
             qLearner.runQLearner(numTrials, i, false);
             double[][][] q = qLearner.getQ();
             double reward = qLearner.getCurrentMaxReward();
-            System.out.println("Max reward, maze: " + i + ": " + reward);
-            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q);
-            System.out.println("Averaged reward across 4 mazes, maze: " + i + ": "  + averagedReward);
+            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, 100);
+            System.out.println("Averaged reward across 4 mazes, policy generated from maze " + i + ": "  + averagedReward);
         }
     }
 
-    /**
-     * will run one episode of q-learning using initial q matrix
-     * @param qInitial
-     */
-    private double runMazesWithQMatrixAndGetAverageReward(QLearner qLearner, double[][][] qInitial) throws MazeException {
-        double totalReward = 0;
-        for (int i = 0; i < 4; i++) {
-            qLearner.setQ(qInitial);
-            qLearner.setCurrentMaxReward(0);
-            qLearner.runQLearner(1, i, true);
-            double reward = qLearner.getCurrentMaxReward();
-            totalReward += reward;
-            System.out.println(" - Reward for maze " + i + ": " + reward);
+    private void runLearningOnAveragedGridWorld(QLearner qLearner) throws MazeException {
+        double[][][] emptyQ = new double[5][5][4];
+        qLearner.setQ(emptyQ);
+
+        double averagedGoalGamma = .99 * 3 / 4;
+
+        qLearner.setGoalGamma(averagedGoalGamma);
+        qLearner.setTerminateAtGoalState(false);
+        qLearner.runQLearner(1000, 4, false);
+
+        double[][][] qSaved = qLearner.getQ();
+        qLearner.setTerminateAtGoalState(true);
+        qLearner.setGoalGamma(0);
+        double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, 100);
+        System.out.println("Averaged reward across 4 mazes, policy generated from average of 4 mazes :" + averagedReward);
+    }
+
+    private double runMazesWithQMatrixAndGetAverageReward(QLearner qLearner, double[][][] qInitial, int numRuns) throws MazeException {
+        double cumulativeRewardSum = 0;
+
+        for (int j = 0; j < numRuns; j++) {
+            double totalReward = 0;
+            for (int i = 0; i < 4; i++) {
+                qLearner.setQ(qInitial);
+                qLearner.setCurrentMaxReward(0);
+                qLearner.runQLearner(1, i, true);
+                double reward = qLearner.getCurrentMaxReward();
+                totalReward += reward;
+            }
+            double averagedTotalReward = totalReward / 4.0;
+            cumulativeRewardSum += averagedTotalReward;
         }
-        return totalReward / 4;
+
+        return cumulativeRewardSum / numRuns;
     }
 
 }
