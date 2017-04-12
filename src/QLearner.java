@@ -111,18 +111,16 @@ public class QLearner {
 
             if (totalReward > maxReward) {
                 maxReward = totalReward;
-
-                // uncomment to print path
-//                String path = "";
-//                for (int[] cell: visited){
-//                    if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
-//                        path += " g:";
-//                    } else {
-//                        path += " ";
-//                    }
-//                    path += "("  + cell[0] + ", " + cell[1] + ")";
-//                }
-//                System.out.println(path);
+                String path = "";
+                for (int[] cell: visited){
+                    if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
+                        path += " g:";
+                    } else {
+                        path += " ";
+                    }
+                    path += "("  + cell[0] + ", " + cell[1] + ")";
+                }
+                System.out.println(path);
 
                 optimalPath = visited;
                 double calculatedReward = getReward(optimalPath, gridWorld);
@@ -170,10 +168,9 @@ public class QLearner {
     void updateQ(int x, int y, int nextX, int nextY, int direction, double r, double[][] gridWorld) {
         double newGamma;
 
-        if (gridWorld[x][y] == 100) {
+        if (gridWorld[x][y] >= this.goalValue) {
             newGamma = this.goalGamma;
         } else {
-            // change to .95
             newGamma = this.stepGamma;
         }
 
