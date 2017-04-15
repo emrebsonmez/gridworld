@@ -112,13 +112,15 @@ public class QLearner {
 
                 trialReward = weightedOldReward + reward;
 
+                // uncomment for debugging
+//                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
+
                 updateQ(current[0], current[1],next[0],next[1], direction, reward, gridWorld);
                 steps++;
                 current = next;
                 visited.add(next);
 
                 // uncomment for debugging
-//                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
 //                printQ();
             }
 
@@ -129,7 +131,7 @@ public class QLearner {
                 double calculatedReward = getReward(optimalPath, gridWorld);
                 if (useFirstEpisode) {
                     if (visited.size() > 100) {
-                        System.out.println("-------- num steps:" + visited.size());
+//                        System.out.println("-------- num steps:" + visited.size());
                     }
                 }
 //                System.out.println("Num steps in current max reward run " + visited.size());

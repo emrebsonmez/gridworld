@@ -136,6 +136,9 @@ public class LearnerUtils {
         }
 
         int[] maxQCell = pickCellAtRandom(cellsWithMaxQValue);
+        if (maxQCell[0] == from[0] && maxQCell[1] == from[1]) {
+            throw new MazeException("from and max q cell are same");
+        }
         return maxQCell;
     }
 

@@ -7,10 +7,12 @@ public class Main {
     private FileUtils fileUtils;
     private ArrayList<double[][]> gridWorlds;
     private double[][] averagedMaze;
+    private int numRuns;
 
     public Main(){
         fileUtils = new FileUtils();
         this.populateGridWorlds();
+        this.numRuns = 10;
     }
 
     /**
@@ -99,17 +101,18 @@ public class Main {
         double alpha = 0.1;
         double epsilon = 0.1;
 
-        QLearner qLearner = new QLearner(terminateAtGoalState, numSteps, goalValue, goalGamma, stepValue, stepGamma,
+        QLearner qLearner = new QLearner(numSteps, goalValue, goalGamma, stepValue, stepGamma,
                 this.gridWorlds, startX, startY, alpha, epsilon);
 
         // print grid worlds
 //        this.printGridWorlds();
         qLearner.resetSystem();
-//        qLearner.runQLearner(1000, 0, false);
-//        double[][][] q = qLearner.getQ();
-//        printGridWorldByIndex(0);
-//        printQ(q);
-        System.out.println("Reward: " + qLearner.getCurrentMaxReward());
+
+        for (int i = 0; i < 5; i++) {
+            runQLearningOnSingleGridWorld(i, qLearner, 100000);
+        }
+
+
         // Part 1. Run learning on individual grid worlds with 1000 runs.
         this.runLearningOnIndividualGridWorlds(qLearner, 50);
 
@@ -118,6 +121,20 @@ public class Main {
         // Part 2. Run learning on averaged grid world.
         this.runLearningOnAveragedGridWorld(qLearner);
     }
+
+    // use this for debugging
+    private void runQLearningOnSingleGridWorld(int testGridWorldIndex, QLearner qLearner, int numTrials) throws MazeException {
+        qLearner.resetSystem();
+        System.out.println("Running q learning on grid world " + testGridWorldIndex);
+        // run q learner with numTrials, terminate at goal state for each trial
+        qLearner.runQLearner(numTrials, testGridWorldIndex, false, true);
+
+        double[][][] q = qLearner.getQ();
+        printGridWorldByIndex(testGridWorldIndex);
+        qLearner.printQ(q);
+//        System.out.println("Reward: " + qLearner.getCurrentMaxReward());
+    }
+
 
     /**
      * 1. Gets Q matrix by running numTrials of qLearning on individual grid worlds.
@@ -135,12 +152,15 @@ public class Main {
         System.out.println("Running q-learning on all four mazes.");
         for (int i = 0; i < 4; i++) {
             qLearner.resetSystem();
-            qLearner.runQLearner(numTrials, i, false);
+
+            qLearner.runQLearner(numTrials, i, false, true);
+
             double[][][] q = qLearner.getQ();
             printGridWorldByIndex(i);
-            printQ(q);
+
+            qLearner.printQ(q);
             double reward = qLearner.getCurrentMaxReward();
-            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, 100);
+            double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, this.numRuns);
             System.out.println("Averaged reward across 4 mazes, policy generated from maze " + i + ": " + averagedReward);
             System.out.println(" ");
             qLearner.resetSystem();
@@ -160,22 +180,18 @@ public class Main {
      * @throws MazeException
      */
     private void runLearningOnAveragedGridWorld(QLearner qLearner) throws MazeException {
-        double[][][] emptyQ = new double[5][5][4];
-        qLearner.setQ(emptyQ);
-        qLearner.setCurrentMaxReward(0);
+        qLearner.resetSystem();
 
         double averagedGoalGamma = .99 * 3 / 4;
-
         qLearner.setGoalGamma(averagedGoalGamma);
-        qLearner.setTerminateAtGoalState(false);
-        qLearner.runQLearner(1000, 4, false);
+
+        qLearner.runQLearner(numRuns, 4, false, false);
 
         double[][][] qSaved = qLearner.getQ();
-        qLearner.setTerminateAtGoalState(true);
-        qLearner.setGoalGamma(0);
         printGridWorldByIndex(4);
         printQ(qSaved);
-        double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, 100);
+
+        double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, this.numRuns);
         System.out.println("Averaged reward across 4 mazes, policy generated from average of 4 mazes: " + averagedReward);
         System.out.println(" ");
     }
@@ -199,12 +215,10 @@ public class Main {
         for (int j = 0; j < numRuns; j++) {
             double totalReward = 0;
             for (int i = 0; i < 4; i++) {
+                qLearner.resetSystem();
                 qLearner.setQ(qInitial);
-                qLearner.setCurrentMaxReward(0);
-                qLearner.setTerminateAtGoalState(true);
-                qLearner.runQLearner(1, i, true);
+                qLearner.runQLearner(1, i, true, true);
                 double reward = qLearner.getCurrentMaxReward();
-//                System.out.println("--- reward for maze " + i + ": " + reward);
                 totalReward += reward;
                 qLearner.resetSystem();
             }
@@ -222,7 +236,8 @@ public class Main {
     }
 
     private void printGridWorldByIndex(int index) {
-        System.out.println(index + "th grid world");
+        System.out.println(" ");
+        System.out.println("Grid world: " + index);
         double[][] gridWorld = gridWorlds.get(index);
         printGridWorld(gridWorld);
         System.out.println(" ");
