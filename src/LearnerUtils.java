@@ -123,37 +123,75 @@ public class LearnerUtils {
      */
     protected int[] maxQCell(int[] from, double[][] maze, double[][][] Q) throws MazeException {
         int[] ret = new int[2];
-        double max = Double.NEGATIVE_INFINITY;
-        ArrayList<int[]> valid = getValidCells(from[0],from[1],maze);
         Random r = new Random();
 
-        boolean choiceFound = false;
+        ArrayList<int[]> validCells = getValidCells(from[0],from[1],maze);
+        double maxQValue = getMaxQValue(from, validCells, Q);
+        ArrayList<int[]> cellsWithMaxQValue = getCellsWithMaxQValue(from, validCells, Q);
 
-        for(int[] k:valid){
-            Direction direction = getDirection(from, k);
-            int directionValue = getDirectionValue(direction);
-            double qValue = Q[from[0]][from[1]][directionValue];
-            if(qValue > max){
-                choiceFound = true;
-                max = qValue;
-                ret = k;
-            } else if(qValue == max){ // pick randomly
-                int randomInt = randomInt(1, r);
-                if(randomInt == 1){ // replace
-                    choiceFound = true;
-                    max = qValue;
-                    ret = k;
-                }
+        int numChoices = cellsWithMaxQValue.size();
+
+        if (numChoices == 0) {
+            throw new MazeException("No choices exist for moving from " + from[0] + ", " + from[1]);
+        }
+
+        int[] maxQCell = pickCellAtRandom(cellsWithMaxQValue);
+        return maxQCell;
+    }
+
+    /**
+     * Given list of cells & starting point, return array list of cells that have maxQValue.
+     * @param from
+     * @param cells
+     * @param Q
+     * @return
+     * @throws MazeException
+     */
+    private ArrayList<int[]> getCellsWithMaxQValue(int[] from, ArrayList<int[]> cells, double[][][] Q) throws MazeException {
+        ArrayList<int[]> maxQValueCells = new ArrayList<>();
+
+        double maxQValue = getMaxQValue(from, cells, Q);
+        for (int[] cell:cells) {
+            double qValue = getQValueForTransition(from, cell, Q);
+            if (qValue >= maxQValue) {
+                maxQValueCells.add(cell);
             }
         }
 
-        if (!choiceFound) {
-            int randomInt = 0 + (int)(Math.random()*valid.size());
-            ret = valid.get(randomInt);
-            return ret;
-        }
+        return maxQValueCells;
+    }
 
-        return ret;
+    /**
+     * Given list of cells, return max Q value of cells in that list.
+     * @param from
+     * @param cells
+     * @param Q
+     * @return
+     * @throws MazeException
+     */
+    private double getMaxQValue(int[] from, ArrayList<int[]> cells, double[][][] Q) throws MazeException {
+        double max = Double.NEGATIVE_INFINITY;
+        for (int[] cell:cells) {
+            double qValue = getQValueForTransition(from, cell, Q);
+            if (qValue > max) {
+                max = qValue;
+            }
+        }
+        return max;
+    }
+
+    private double getQValueForTransition(int[] from, int[] to, double[][][] Q) throws MazeException {
+        Direction direction = getDirection(from, to);
+        int directionValue = getDirectionValue(direction);
+        double qValue = Q[from[0]][from[1]][directionValue];
+        return qValue;
+    }
+
+    // Given list of cells, pick one at random from list
+    private int[] pickCellAtRandom(ArrayList<int[]> cells) {
+        // TODO verify this is correct
+        int randomInt = 0 + (int)(Math.random()*(cells.size()-1));
+        return cells.get(randomInt);
     }
 
     public int getDirectionValue(Direction direction) throws MazeException {
@@ -170,7 +208,7 @@ public class LearnerUtils {
         throw new MazeException("Direction could not be found.");
     }
 
-    protected double maxQVal(int x, int y, double[][][] Q) {
+    protected double maxQVal(int x, int y, double[][][] Q) throws MazeException {
         double max = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < 4; i++) {
             double val = Q[x][y][i];
@@ -181,8 +219,9 @@ public class LearnerUtils {
 
         if (max > Double.NEGATIVE_INFINITY) {
             return max;
+        } else {
+            throw new MazeException("Max q value is negative infinity...");
         }
-        return 0;
     }
 
     /**
