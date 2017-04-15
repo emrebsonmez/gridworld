@@ -5,7 +5,6 @@ import java.util.ArrayList;
  */
 public class QLearner {
     // When false, run until numRuns
-    private boolean terminateAtGoalState;
     private int maxSteps;
 
     // Reward and gamma values
@@ -37,7 +36,6 @@ public class QLearner {
 
 
     public QLearner(
-            boolean terminateAtGoalState,
             int maxSteps,
             int goalValue,
             double goalGamma,
@@ -48,7 +46,6 @@ public class QLearner {
             int startY,
             double alpha,
             double epsilon) {
-        this.terminateAtGoalState = terminateAtGoalState;
         this.maxSteps = maxSteps;
         this.goalValue = goalValue;
         this.goalGamma = goalGamma;
@@ -65,7 +62,7 @@ public class QLearner {
         learnerUtils = new LearnerUtils();
     }
 
-    public void runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode) throws MazeException {
+    public void runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode, boolean terminateAtGoalState) throws MazeException {
         ArrayList<Integer> log = new ArrayList<>();
         double maxReward = -10000;
 
@@ -99,8 +96,11 @@ public class QLearner {
                 double reward = gridWorld[next[0]][next[1]];
 
                 // if goal hit & program should terminate at goal, exit loop
-                if (reward >= this.goalValue && this.terminateAtGoalState) {
+                if (reward >= this.goalValue && terminateAtGoalState) {
                     terminate = true;
+
+                    // uncomment for debugging
+//                    System.out.println("Run about to terminate.");
                 } else {
                     // terminate if trial has reached maxSteps
                     terminate = (steps >= this.maxSteps);
@@ -111,31 +111,35 @@ public class QLearner {
                 double weightedOldReward = (currentIsGoal) ? trialReward*this.goalGamma : trialReward*this.stepGamma;
 
                 trialReward = weightedOldReward + reward;
-//                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
 
                 updateQ(current[0], current[1],next[0],next[1], direction, reward, gridWorld);
                 steps++;
                 current = next;
                 visited.add(next);
+
+                // uncomment for debugging
+//                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
 //                printQ();
             }
 
             if (trialReward > maxReward) {
                 maxReward = trialReward;
-//                printPath(visited, gridWorld);
                 optimalPath = visited;
-//                System.out.println("Reward " + maxReward);
+
                 double calculatedReward = getReward(optimalPath, gridWorld);
                 if (useFirstEpisode) {
-                    if (visited.size() > 1000) {
+                    if (visited.size() > 100) {
                         System.out.println("-------- num steps:" + visited.size());
                     }
                 }
+//                System.out.println("Num steps in current max reward run " + visited.size());
+                // uncomment below for debugging
+//                System.out.println("Reward " + maxReward);
+//                printPath(visited, gridWorld);
 //                System.out.println("Calculated reward " + calculatedReward);
 //                printQ();
                 this.currentMaxReward = calculatedReward;
             }
-//            System.out.println(totalReward);
             log.add(steps);
         }
     }
@@ -208,6 +212,8 @@ public class QLearner {
         double adjustment = (Q[x][y][directionValue] > Double.NEGATIVE_INFINITY) ? Q[x][y][directionValue] : 0;
         double updateValue = alpha * (r + newGamma * learnerUtils.maxQVal(nextX, nextY, Q) - adjustment);
         Q[x][y][directionValue] += updateValue;
+
+        // uncomment below for debugging
 //        System.out.println("Q value at " + x + ", " + y + ", " + direction + ": " + Q[x][y][directionValue] + " ~ update value: " + updateValue);
     }
 
@@ -269,7 +275,7 @@ public class QLearner {
 
     public void resetSystem() {
         resetQ();
-        setCurrentMaxReward(-111);
+        setCurrentMaxReward(-10000);
     }
 
     private void resetQ() {
@@ -310,14 +316,6 @@ public class QLearner {
 
     public void setGoalValue(int goalValue) {
         this.goalValue = goalValue;
-    }
-
-    public boolean isTerminateAtGoalState() {
-        return terminateAtGoalState;
-    }
-
-    public void setTerminateAtGoalState(boolean terminateAtGoalState) {
-        this.terminateAtGoalState = terminateAtGoalState;
     }
 
     public int getStepValue() {
