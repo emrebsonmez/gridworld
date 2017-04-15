@@ -137,8 +137,7 @@ public class LearnerUtils {
                 choiceFound = true;
                 max = qValue;
                 ret = k;
-            }
-            if(qValue == max){ // pick randomly
+            } else if(qValue == max){ // pick randomly
                 int randomInt = randomInt(1, r);
                 if(randomInt == 1){ // replace
                     choiceFound = true;
