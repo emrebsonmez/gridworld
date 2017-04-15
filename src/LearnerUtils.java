@@ -192,8 +192,7 @@ public class LearnerUtils {
 
     // Given list of cells, pick one at random from list
     private int[] pickCellAtRandom(ArrayList<int[]> cells) {
-        // TODO verify this is correct
-        int randomInt = 0 + (int)(Math.random()*(cells.size()-1));
+        int randomInt = 0 + (int)(Math.random()*(cells.size()));
         return cells.get(randomInt);
     }
 
