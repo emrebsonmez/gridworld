@@ -206,7 +206,7 @@ public class LearnerUtils {
     }
 
     protected int[] greedy(int[] cell, double[][] maze, double[][][] Q, double epsilon) throws MazeException {
-        int randomNum = randomInt(100, new Random());
+        double randomNum = randomInt(100, new Random())/100.0;
         if(randomNum < epsilon) {
             ArrayList<int[]> validCells = getValidCells(cell[0],cell[1],maze);
             int randomNum2 = randomInt(validCells.size(),new Random());
