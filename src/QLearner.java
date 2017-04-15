@@ -218,52 +218,60 @@ public class QLearner {
     }
 
     public void printQ() {
+        printQ(this.Q);
+    }
+
+    public void printQ(double[][][] q) {
         int[][] numAdded = new int[5][5];
         double[][] heatMap = new double[5][5];
-        double[][][] q = this.Q;
 
         int qSize = q[0].length;
 
         for (int i = 0; i < qSize; i++) { // rows
+            String row = "";
+            ArrayList<double[]> cells = new ArrayList<>();
             for (int j = 0; j < qSize; j++) { // columns
+                double[] cellVals = new double[4];
                 if (i - 1 >= 0) { // up
                     heatMap[i-1][j] += q[i][j][0];
-                    if (heatMap[i-1][j] > Double.NEGATIVE_INFINITY) {
-                        numAdded[i-1][j] += 1;
-                    }
-                }
-
-                if (i + 1 < qSize) { // down
-                    heatMap[i+1][j] += q[i][j][2];
-                    if (heatMap[i+1][j] > Double.NEGATIVE_INFINITY) {
-                        numAdded[i+1][j] += 1;
-                    }
-                }
-
-                if (j - 1 >= 0) { // left
-                    heatMap[i][j-1] += q[i][j][3];
-                    if (heatMap[i][j-1] > Double.NEGATIVE_INFINITY) {
-                        numAdded[i][j-1] += 1;
-                    }
+                    numAdded[i-1][j] += 1;
+                    cellVals[0] = q[i][j][0];
                 }
 
                 if (j + 1 < qSize) { // right
                     heatMap[i][j+1] += q[i][j][1];
-                    if (heatMap[i][j+1] > Double.NEGATIVE_INFINITY) {
-                        numAdded[i][j+1] += 1;
-                    }
+                    numAdded[i][j+1] += 1;
+                    cellVals[1] = q[i][j][1];
                 }
-            }
-        }
 
-        for (int u = 0; u < heatMap.length; u++) {
-            for (int v = 0; v < heatMap.length; v++) {
-                heatMap[u][v] = heatMap[u][v] / numAdded[u][v];
+                if (i + 1 < qSize) { // down
+                    heatMap[i+1][j] += q[i][j][2];
+                    numAdded[i+1][j] += 1;
+                    cellVals[2] = q[i][j][2];
+                }
+
+                if (j - 1 >= 0) { // left
+                    heatMap[i][j-1] += q[i][j][3];
+                    numAdded[i][j-1] += 1;
+                    cellVals[3] = q[i][j][3];
+                }
+                cells.add(cellVals);
             }
+            double[] cell0 = cells.get(0);
+            double[] cell1 = cells.get(1);
+            double[] cell2 = cells.get(2);
+            double[] cell3 = cells.get(3);
+            double[] cell4 = cells.get(4);
+
+            System.out.printf("u:%6.2f r:%6.2f d:%6.2f l:%6.2f | u:%6.2f r:%6.2f d:%6.2f l:%6.2f | u:%6.2f r:%6.2f d:%6.2f l:%6.2f | u:%6.2f r:%6.2f d:%6.2f l:%6.2f | u:%6.2f r:%6.2f d:%6.2f l:%6.2f",
+                    cell0[0], cell0[1], cell0[2], cell0[3],
+                    cell1[0], cell1[1], cell1[2], cell1[3],
+                    cell2[0], cell2[1], cell2[2], cell2[3],
+                    cell3[0], cell3[1], cell3[2], cell3[3],
+                    cell4[0], cell4[1], cell4[2], cell4[3]);
+
+            System.out.println(row);
         }
-        System.out.println("Q heat map:");
-        printGridWorld(heatMap);
-        System.out.println(" ");
     }
 
     private void printGridWorld(double[][] gridWorld) {
