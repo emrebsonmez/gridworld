@@ -6,7 +6,7 @@ import java.util.ArrayList;
 public class QLearner {
     // When false, run until numRuns
     private boolean terminateAtGoalState;
-    private int numSteps;
+    private int maxSteps;
 
     // Reward and gamma values
     private int goalValue;
@@ -38,7 +38,7 @@ public class QLearner {
 
     public QLearner(
             boolean terminateAtGoalState,
-            int numSteps,
+            int maxSteps,
             int goalValue,
             double goalGamma,
             int stepValue,
@@ -49,7 +49,7 @@ public class QLearner {
             double alpha,
             double epsilon) {
         this.terminateAtGoalState = terminateAtGoalState;
-        this.numSteps = numSteps;
+        this.maxSteps = maxSteps;
         this.goalValue = goalValue;
         this.goalGamma = goalGamma;
         this.stepValue = stepValue;
@@ -60,74 +60,103 @@ public class QLearner {
         this.alpha = alpha;
         this.epsilon = epsilon;
 
+        resetSystem();
         Q = new double[gridWorlds.get(0).length][gridWorlds.get(0).length][4];
         learnerUtils = new LearnerUtils();
     }
 
     public void runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode) throws MazeException {
         ArrayList<Integer> log = new ArrayList<>();
-        int maxReward = -10000;
+        double maxReward = -10000;
 
         double[][] gridWorld = gridWorlds.get(gridWorldIndex);
 
-        // only run once if run will not terminate
-        int adjustedRuns = (this.terminateAtGoalState && !useFirstEpisode) ? runs : 1;
-        for(int i = 0; i < adjustedRuns; i++) {
+        // Get number of times to run q-learning. 1 if only using first episode
+        int numRuns = useFirstEpisode ? 1 : runs;
+
+        for(int i = 0; i < numRuns; i++) {
             int steps = 0;
-            int[] current = new int[]{startX, startY};
-            int totalReward = 0;
+
+            int xStart = useFirstEpisode ? 0 : getStartCell();
+            int yStart = useFirstEpisode ? 0: getStartCell();
+            int[] current = new int[]{xStart, yStart};
+            double trialReward = 0;
 
             // Track visited
             ArrayList<int[]> visited = new ArrayList<>();
             visited.add(current);
 
             boolean terminate = false;
-            if (i == adjustedRuns - 1 && !this.terminateAtGoalState) {
-                setCurrentMaxReward(-1000);
-            }
+
             while (!terminate) {
+                // get next state from greedy state selection
                 int[] next = learnerUtils.greedy(current, gridWorld, Q, epsilon);
-                int direction = learnerUtils.getDirection(current,next);
+
+                // get direction of next state compared to current state
+                Direction direction = learnerUtils.getDirection(current,next);
+
+                // get reward of moving to next state
                 double reward = gridWorld[next[0]][next[1]];
 
-                // if reward hit and program should terminate at goal state, break
+                // if goal hit & program should terminate at goal, exit loop
                 if (reward >= this.goalValue && this.terminateAtGoalState) {
                     terminate = true;
+                } else {
+                    // terminate if trial has reached maxSteps
+                    terminate = (steps >= this.maxSteps);
                 }
 
-                // otherwise, terminate if steps greater than configured numsteps
-                else {
-                    if (steps >= this.numSteps) {
-                        terminate = true;
-                    }
-                }
+                // if current is goal, weight old reward with goalGamma
+                boolean currentIsGoal = (gridWorld[current[0]][current[1]] >= this.goalValue);
+                double weightedOldReward = (currentIsGoal) ? trialReward*this.goalGamma : trialReward*this.stepGamma;
 
-                totalReward += reward;
+                trialReward = weightedOldReward + reward;
+//                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
+
                 updateQ(current[0], current[1],next[0],next[1], direction, reward, gridWorld);
                 steps++;
                 current = next;
                 visited.add(next);
+//                printQ();
             }
 
-            if (totalReward > maxReward) {
-                maxReward = totalReward;
-                String path = "";
-                for (int[] cell: visited){
-                    if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
-                        path += " g:";
-                    } else {
-                        path += " ";
-                    }
-                    path += "("  + cell[0] + ", " + cell[1] + ")";
-                }
-                System.out.println(path);
-
+            if (trialReward > maxReward) {
+                maxReward = trialReward;
+//                printPath(visited, gridWorld);
                 optimalPath = visited;
+//                System.out.println("Reward " + maxReward);
                 double calculatedReward = getReward(optimalPath, gridWorld);
+                if (useFirstEpisode) {
+                    if (visited.size() > 1000) {
+                        System.out.println("-------- num steps:" + visited.size());
+                    }
+                }
+//                System.out.println("Calculated reward " + calculatedReward);
+//                printQ();
                 this.currentMaxReward = calculatedReward;
             }
+//            System.out.println(totalReward);
             log.add(steps);
         }
+    }
+
+    private int getStartCell() {
+        int randomNum = 0 + (int)(Math.random() * 4);
+        return randomNum;
+    }
+
+    private void printPath(ArrayList<int[]> path, double[][] gridWorld) {
+        String pathString = "";
+        for (int[] cell: path){
+            if (gridWorld[cell[0]][cell[1]] >= this.goalValue) {
+                pathString += " g:";
+            } else {
+                pathString += " ";
+            }
+            pathString += "("  + cell[0] + ", " + cell[1] + ")";
+        }
+        System.out.println(pathString);
+        System.out.println("Steps in this iteration: " + path.size());
     }
 
     /**
@@ -143,6 +172,7 @@ public class QLearner {
             int x = cell[0];
             int y = cell[1];
             double value = myGrid[x][y];
+//            System.out.print(value + " ");
             if (value >= this.goalValue) {
                 runningGamma = this.goalGamma * runningGamma;
             } else {
@@ -165,7 +195,7 @@ public class QLearner {
      * @param direction
      * @param r
      */
-    void updateQ(int x, int y, int nextX, int nextY, int direction, double r, double[][] gridWorld) {
+    void updateQ(int x, int y, int nextX, int nextY, Direction direction, double r, double[][] gridWorld) throws MazeException {
         double newGamma;
 
         if (gridWorld[x][y] >= this.goalValue) {
@@ -174,7 +204,84 @@ public class QLearner {
             newGamma = this.stepGamma;
         }
 
-        Q[x][y][direction] += alpha * (r + newGamma * learnerUtils.maxQVal(nextX, nextY, Q) - Q[x][y][direction]);
+        int directionValue = learnerUtils.getDirectionValue(direction);
+        double adjustment = (Q[x][y][directionValue] > Double.NEGATIVE_INFINITY) ? Q[x][y][directionValue] : 0;
+        double updateValue = alpha * (r + newGamma * learnerUtils.maxQVal(nextX, nextY, Q) - adjustment);
+        Q[x][y][directionValue] += updateValue;
+//        System.out.println("Q value at " + x + ", " + y + ", " + direction + ": " + Q[x][y][directionValue] + " ~ update value: " + updateValue);
+    }
+
+    public void printQ() {
+        int[][] numAdded = new int[5][5];
+        double[][] heatMap = new double[5][5];
+        double[][][] q = this.Q;
+
+        int qSize = q[0].length;
+
+        for (int i = 0; i < qSize; i++) { // rows
+            for (int j = 0; j < qSize; j++) { // columns
+                if (i - 1 >= 0) { // up
+                    heatMap[i-1][j] += q[i][j][0];
+                    if (heatMap[i-1][j] > Double.NEGATIVE_INFINITY) {
+                        numAdded[i-1][j] += 1;
+                    }
+                }
+
+                if (i + 1 < qSize) { // down
+                    heatMap[i+1][j] += q[i][j][2];
+                    if (heatMap[i+1][j] > Double.NEGATIVE_INFINITY) {
+                        numAdded[i+1][j] += 1;
+                    }
+                }
+
+                if (j - 1 >= 0) { // left
+                    heatMap[i][j-1] += q[i][j][3];
+                    if (heatMap[i][j-1] > Double.NEGATIVE_INFINITY) {
+                        numAdded[i][j-1] += 1;
+                    }
+                }
+
+                if (j + 1 < qSize) { // right
+                    heatMap[i][j+1] += q[i][j][1];
+                    if (heatMap[i][j+1] > Double.NEGATIVE_INFINITY) {
+                        numAdded[i][j+1] += 1;
+                    }
+                }
+            }
+        }
+
+        for (int u = 0; u < heatMap.length; u++) {
+            for (int v = 0; v < heatMap.length; v++) {
+                heatMap[u][v] = heatMap[u][v] / numAdded[u][v];
+            }
+        }
+        System.out.println("Q heat map:");
+        printGridWorld(heatMap);
+        System.out.println(" ");
+    }
+
+    private void printGridWorld(double[][] gridWorld) {
+        for (int i = 0; i < gridWorld[0].length; i++) {
+            System.out.printf("%6.2f | %6.2f | %6.2f | %6.2f | %6.2f", gridWorld[i][0], gridWorld[i][1], gridWorld[i][2], gridWorld[i][3], gridWorld[i][4]);
+            System.out.println(" ");
+        }
+    }
+
+    public void resetSystem() {
+        resetQ();
+        setCurrentMaxReward(-111);
+    }
+
+    private void resetQ() {
+        int length = gridWorlds.get(0).length;
+        Q = new double[length][length][4];
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                for (int k = 0; k < 4; k++) {
+                    Q[i][j][k] = 0;
+                }
+            }
+        }
     }
 
     public ArrayList<int[]> getOptimalPath() {
@@ -185,7 +292,7 @@ public class QLearner {
         return stepGamma;
     }
 
-    public void setStepGamma(int stepGamma) {
+    public void setStepGamma(double stepGamma) {
         this.stepGamma = stepGamma;
     }
 

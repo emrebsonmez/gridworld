@@ -81,10 +81,10 @@ public class LearnerUtils {
                 cells.add(ret);
             }
         }
-        System.out.println("for cell " + x + ", " + y);
-        for (int[] c: cells) {
-            System.out.print(" " + c[0] + " " + c[1] + " | ");
-        }
+//        System.out.println("for cell " + x + ", " + y);
+//        for (int[] c: cells) {
+//            System.out.print(" " + c[0] + " " + c[1] + " | ");
+//        }
         return cells;
     }
 
