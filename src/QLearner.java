@@ -13,7 +13,7 @@ public class QLearner {
     private int stepValue;
     private double stepGamma;
 
-    private double currentMaxReward = 0;
+    private double currentMaxReward = -1000;
 
     // Grid
     private ArrayList<double[][]> gridWorlds;
@@ -62,7 +62,7 @@ public class QLearner {
         learnerUtils = new LearnerUtils();
     }
 
-    public void runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode, boolean terminateAtGoalState) throws MazeException {
+    public double runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode, boolean terminateAtGoalState) throws MazeException {
         ArrayList<Integer> log = new ArrayList<>();
         double maxReward = -10000;
 
@@ -138,12 +138,14 @@ public class QLearner {
                 // uncomment below for debugging
 //                System.out.println("Reward " + maxReward);
 //                printPath(visited, gridWorld);
-//                System.out.println("Calculated reward " + calculatedReward);
+//                System.out.println("----------------- Visited " + visited.size());
+//                System.out.println("----------------- Calculated reward " + calculatedReward);
 //                printQ();
-                this.currentMaxReward = calculatedReward;
+//                this.currentMaxReward = calculatedReward;
             }
             log.add(steps);
         }
+        return maxReward;
     }
 
     private int getStartCell() {
@@ -274,6 +276,7 @@ public class QLearner {
 
             System.out.println(row);
         }
+        System.out.println(" ");
     }
 
     private void printGridWorld(double[][] gridWorld) {
@@ -285,7 +288,7 @@ public class QLearner {
 
     public void resetSystem() {
         resetQ();
-        setCurrentMaxReward(-10000);
+        setCurrentMaxReward(-1000);
     }
 
     private void resetQ() {
@@ -298,6 +301,20 @@ public class QLearner {
                 }
             }
         }
+    }
+
+    public boolean qEqual(double[][][] q1, double[][][] q2) {
+        int len = q1[0].length;
+        for(int i = 0; i < len; i++) {
+            for(int j = 0; j < len; j++) {
+                for(int k = 0; k < 4; k++) {
+                    if (q1[i][j][k] != q2[i][j][k]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     public ArrayList<int[]> getOptimalPath() {
@@ -340,7 +357,7 @@ public class QLearner {
         return currentMaxReward;
     }
 
-    public void setCurrentMaxReward(int currentMaxReward) {
+    public void setCurrentMaxReward(double currentMaxReward) {
         this.currentMaxReward = currentMaxReward;
     }
 

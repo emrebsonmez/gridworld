@@ -12,7 +12,7 @@ public class Main {
     public Main(){
         fileUtils = new FileUtils();
         this.populateGridWorlds();
-        this.numRuns = 10;
+        this.numRuns = 1000;
     }
 
     /**
@@ -108,16 +108,18 @@ public class Main {
 //        this.printGridWorlds();
         qLearner.resetSystem();
 
-        for (int i = 0; i < 5; i++) {
-            runQLearningOnSingleGridWorld(i, qLearner, 100000);
-        }
+//        for (int i = 0; i < 5; i++) {
+//            runQLearningOnSingleGridWorld(i, qLearner, 100000);
+//        }
 
 
         // Part 1. Run learning on individual grid worlds with 1000 runs.
-        this.runLearningOnIndividualGridWorlds(qLearner, 50);
+        this.runLearningOnIndividualGridWorlds(qLearner, 10000);
 
-        qLearner.setGoalGamma(0);
-        qLearner.setStepGamma(.99);
+//        qLearner.setGoalGamma(0);
+//        qLearner.setStepGamma(.99);
+//        qLearner.resetSystem();
+
         // Part 2. Run learning on averaged grid world.
         this.runLearningOnAveragedGridWorld(qLearner);
     }
@@ -159,12 +161,10 @@ public class Main {
             printGridWorldByIndex(i);
 
             qLearner.printQ(q);
-            double reward = qLearner.getCurrentMaxReward();
             double averagedReward = this.runMazesWithQMatrixAndGetAverageReward(qLearner, q, this.numRuns);
             System.out.println("Averaged reward across 4 mazes, policy generated from maze " + i + ": " + averagedReward);
-            System.out.println(" ");
-            qLearner.resetSystem();
         }
+        qLearner.resetSystem();
     }
 
     /**
@@ -189,7 +189,7 @@ public class Main {
 
         double[][][] qSaved = qLearner.getQ();
         printGridWorldByIndex(4);
-        printQ(qSaved);
+        qLearner.printQ(qSaved);
 
         double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, this.numRuns);
         System.out.println("Averaged reward across 4 mazes, policy generated from average of 4 mazes: " + averagedReward);
@@ -217,8 +217,11 @@ public class Main {
             for (int i = 0; i < 4; i++) {
                 qLearner.resetSystem();
                 qLearner.setQ(qInitial);
-                qLearner.runQLearner(1, i, true, true);
-                double reward = qLearner.getCurrentMaxReward();
+                boolean qEqual = qLearner.qEqual(qInitial, qLearner.getQ());
+                assert(qEqual); // for debugging
+//                qLearner.printQ(qLearner.getQ());
+                double reward = qLearner.runQLearner(1, i, true, true);
+//                System.out.println("~~~~~~~~~ reward for maze " + i + ": " + reward);
                 totalReward += reward;
                 qLearner.resetSystem();
             }
