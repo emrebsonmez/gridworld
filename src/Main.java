@@ -91,7 +91,7 @@ public class Main {
      */
     private void runQ() throws MazeException {
         boolean terminateAtGoalState = true; // exit episode if goal state is reached
-        int numSteps = 50000;
+        int numSteps = 10000;
         int goalValue = 22; // this is the minimum threshold that defines a goal
         int stepValue = -1;
         double goalGamma = 0;
@@ -115,10 +115,6 @@ public class Main {
 
         // Part 1. Run learning on individual grid worlds with 1000 runs.
         this.runLearningOnIndividualGridWorlds(qLearner, 10000);
-
-//        qLearner.setGoalGamma(0);
-//        qLearner.setStepGamma(.99);
-//        qLearner.resetSystem();
 
         // Part 2. Run learning on averaged grid world.
         this.runLearningOnAveragedGridWorld(qLearner);
@@ -185,12 +181,13 @@ public class Main {
         double averagedGoalGamma = .99 * 3 / 4;
         qLearner.setGoalGamma(averagedGoalGamma);
 
-        qLearner.runQLearner(numRuns, 4, false, false);
+        qLearner.runQLearner(1000, 4, false, false);
 
         double[][][] qSaved = qLearner.getQ();
         printGridWorldByIndex(4);
         qLearner.printQ(qSaved);
 
+        qLearner.setGoalGamma(0);
         double averagedReward = runMazesWithQMatrixAndGetAverageReward(qLearner, qSaved, this.numRuns);
         System.out.println("Averaged reward across 4 mazes, policy generated from average of 4 mazes: " + averagedReward);
         System.out.println(" ");
