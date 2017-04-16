@@ -1,2 +1,2 @@
-#Gridworld
-This repository holds code related to RL research.  
+# Gridworld
+This repository holds experiments related to building skill acquisition algorithms for reinforcement learning agents.  
