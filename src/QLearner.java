@@ -24,6 +24,7 @@ public class QLearner {
 
     // Q matrix
     private double[][][] Q; // 0 1 2 3 for north, east, south, west
+    private ArrayList<double[][][]> qMatrices;
 
     private ArrayList<int[]> optimalPath;
 
@@ -32,7 +33,7 @@ public class QLearner {
     private double alpha;
     private double epsilon;
 
-    private LearnerUtils learnerUtils;
+    private LearnerUtils learnerUtils = new LearnerUtils();
 
 
     public QLearner(
@@ -45,7 +46,7 @@ public class QLearner {
             int startX,
             int startY,
             double alpha,
-            double epsilon) {
+            double epsilon) throws MazeException {
         this.maxSteps = maxSteps;
         this.goalValue = goalValue;
         this.goalGamma = goalGamma;
@@ -59,10 +60,9 @@ public class QLearner {
 
         resetSystem();
         Q = new double[gridWorlds.get(0).length][gridWorlds.get(0).length][4];
-        learnerUtils = new LearnerUtils();
     }
 
-    public double runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode, boolean terminateAtGoalState) throws MazeException {
+    public double runQLearner(int runs, int gridWorldIndex, boolean useFirstEpisode, boolean terminateAtGoalState, boolean useAveragedPolicy) throws MazeException {
         ArrayList<Integer> log = new ArrayList<>();
         double maxReward = -10000;
 
@@ -87,7 +87,12 @@ public class QLearner {
 
             while (!terminate) {
                 // get next state from greedy state selection
-                int[] next = learnerUtils.greedy(current, gridWorld, Q, epsilon);
+                int[] next;
+                if (useAveragedPolicy) {
+                    next = learnerUtils.greedyWithMultipleOptions(current, gridWorld, this.qMatrices, this.epsilon);
+                } else {
+                    next = learnerUtils.greedy(current, gridWorld, Q, this.epsilon);
+                }
 
                 // get direction of next state compared to current state
                 Direction direction = learnerUtils.getDirection(current,next);
@@ -114,8 +119,8 @@ public class QLearner {
 
                 // uncomment for debugging
 //                System.out.println("moving from " + current[0] + ", " + current[1] + " to " + next[0] + ", " + next[1] + " reward: " + reward);
-
                 updateQ(current[0], current[1],next[0],next[1], direction, reward, gridWorld);
+
                 steps++;
                 current = next;
                 visited.add(next);
@@ -226,9 +231,6 @@ public class QLearner {
     }
 
     public void printQ(double[][][] q) {
-        int[][] numAdded = new int[5][5];
-        double[][] heatMap = new double[5][5];
-
         int qSize = q[0].length;
 
         for (int i = 0; i < qSize; i++) { // rows
@@ -237,26 +239,18 @@ public class QLearner {
             for (int j = 0; j < qSize; j++) { // columns
                 double[] cellVals = new double[4];
                 if (i - 1 >= 0) { // up
-                    heatMap[i-1][j] += q[i][j][0];
-                    numAdded[i-1][j] += 1;
                     cellVals[0] = q[i][j][0];
                 }
 
                 if (j + 1 < qSize) { // right
-                    heatMap[i][j+1] += q[i][j][1];
-                    numAdded[i][j+1] += 1;
                     cellVals[1] = q[i][j][1];
                 }
 
                 if (i + 1 < qSize) { // down
-                    heatMap[i+1][j] += q[i][j][2];
-                    numAdded[i+1][j] += 1;
                     cellVals[2] = q[i][j][2];
                 }
 
                 if (j - 1 >= 0) { // left
-                    heatMap[i][j-1] += q[i][j][3];
-                    numAdded[i][j-1] += 1;
                     cellVals[3] = q[i][j][3];
                 }
                 cells.add(cellVals);
@@ -286,12 +280,12 @@ public class QLearner {
         }
     }
 
-    public void resetSystem() {
+    public void resetSystem() throws MazeException {
         resetQ();
         setCurrentMaxReward(-1000);
     }
 
-    private void resetQ() {
+    private void resetQ() throws MazeException {
         int length = gridWorlds.get(0).length;
         Q = new double[length][length][4];
         for (int i = 0; i < length; i++) {
@@ -301,20 +295,10 @@ public class QLearner {
                 }
             }
         }
-    }
-
-    public boolean qEqual(double[][][] q1, double[][][] q2) {
-        int len = q1[0].length;
-        for(int i = 0; i < len; i++) {
-            for(int j = 0; j < len; j++) {
-                for(int k = 0; k < 4; k++) {
-                    if (q1[i][j][k] != q2[i][j][k]) {
-                        return false;
-                    }
-                }
-            }
+        // sanity check
+        if (!learnerUtils.qEqual(new double[5][5][4], this.Q)) {
+            throw new MazeException("Q matrix was not reset properly.");
         }
-        return true;
     }
 
     public ArrayList<int[]> getOptimalPath() {
@@ -367,5 +351,21 @@ public class QLearner {
 
     public void setQ(double[][][] Q) {
         this.Q = Q;
+    }
+
+    public void setEpsilon(double epsilon) {
+        this.epsilon = epsilon;
+    }
+
+    public void setQMatrices(ArrayList<double[][][]> qMatrices) {
+        this.qMatrices = qMatrices;
+    }
+
+    public ArrayList<double[][][]> getQMatrices() {
+        return this.qMatrices;
+    }
+
+    public LearnerUtils getLearnerUtils() {
+        return this.learnerUtils;
     }
 }

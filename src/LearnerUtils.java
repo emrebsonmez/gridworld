@@ -95,7 +95,10 @@ public class LearnerUtils {
      * @return
      */
     protected Direction getDirection(int[] from, int[] to) throws MazeException {
-        assert(!from.equals(to));
+        if (from.equals(to)) {
+            throw new MazeException("From and to cannot be equivalent.");
+        }
+
         if (from[0] > to[0]) { // up
             return Direction.UP;
         }
@@ -256,4 +259,64 @@ public class LearnerUtils {
             return maxQCell(cell,maze,Q);
         }
     }
+
+    /**
+     * Given multiple q matrices, choose one at random.
+     * @param cell
+     * @param maze
+     * @param qMatrices
+     * @param epsilon
+     * @return
+     * @throws MazeException
+     */
+    protected int[] greedyWithMultipleOptions(int[] cell, double[][] maze, ArrayList<double[][][]> qMatrices, double epsilon) throws MazeException {
+        double randomNum = randomInt(100, new Random())/100.0;
+        if(randomNum < epsilon) {
+            ArrayList<int[]> validCells = getValidCells(cell[0], cell[1], maze);
+            int randomNum2 = randomInt(validCells.size(), new Random());
+            return validCells.get(randomNum2);
+        } else {
+            double[][][] Q = pickQMatrixAtRandom(qMatrices);
+            return maxQCell(cell, maze, Q);
+        }
+    }
+
+    private double[][][] pickQMatrixAtRandom(ArrayList<double[][][]> qMatrices) {
+        int randomInt = 0 + (int)(Math.random()*(qMatrices.size()));
+        return qMatrices.get(randomInt);
+    }
+
+    public double[][][] copyQ(double[][][] q) throws MazeException {
+        int length = q[0].length;
+        double [][][] qCopy = new double[length][length][4];
+
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                for (int k = 0; k < 4; k++) {
+                    qCopy[i][j][k] = q[i][j][k];
+                }
+            }
+        }
+
+        if (!qEqual(qCopy, q)) {
+            throw new MazeException("Q matrix was not copied correctly");
+        }
+
+        return qCopy;
+    }
+
+    public boolean qEqual(double[][][] q1, double[][][] q2) {
+        int len = q1[0].length;
+        for(int i = 0; i < len; i++) {
+            for(int j = 0; j < len; j++) {
+                for(int k = 0; k < 4; k++) {
+                    if (q1[i][j][k] != q2[i][j][k]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
 }
