@@ -12,22 +12,27 @@ public class LearnerUtils {
      * @param direction
      * @return
      */
-    protected int[] nextCell(int x, int y, int direction, int[][] maze) throws MazeException {
+
+    protected int[] nextCell(int x, int y, Direction direction, int[][] maze) throws MazeException {
         int[] ret = new int[2];
         switch (direction) {
-            case 0:
+            // up
+            case UP:
                 ret[0] = x-1;
                 ret[1] = y;
                 break;
-            case 1:
+            // right
+            case RIGHT:
                 ret[0] = x;
                 ret[1] = y+1;
                 break;
-            case 2:
+            // down
+            case DOWN:
                 ret[0] = x+1;
                 ret[1] = y;
                 break;
-            case 3:
+            // left
+            case LEFT:
                 ret[0] = x;
                 ret[1] = y-1;
                 break;
@@ -76,6 +81,10 @@ public class LearnerUtils {
                 cells.add(ret);
             }
         }
+//        System.out.println("for cell " + x + ", " + y);
+//        for (int[] c: cells) {
+//            System.out.print(" " + c[0] + " " + c[1] + " | ");
+//        }
         return cells;
     }
 
@@ -85,19 +94,19 @@ public class LearnerUtils {
      * @param to
      * @return
      */
-    protected int getDirection(int[] from, int[] to) throws MazeException {
+    protected Direction getDirection(int[] from, int[] to) throws MazeException {
         assert(!from.equals(to));
         if (from[0] > to[0]) { // up
-            return 0;
+            return Direction.UP;
         }
         if (from[1] < to[1]) { // right
-            return 1;
+            return Direction.RIGHT;
         }
         if (from[0] < to[0]) { // down
-            return 2;
+            return Direction.DOWN;
         }
         if (from[1] > to[1]) { // left
-            return 3;
+            return Direction.LEFT;
         }
         System.out.println("from: " + from[0] + " " + from[1] + " to: " + to[0] + " " + to[1]);
         throw new MazeException("Invalid direction.");
@@ -114,32 +123,94 @@ public class LearnerUtils {
      */
     protected int[] maxQCell(int[] from, double[][] maze, double[][][] Q) throws MazeException {
         int[] ret = new int[2];
-        double max = Double.NEGATIVE_INFINITY;
-        ArrayList<int[]> valid = getValidCells(from[0],from[1],maze);
         Random r = new Random();
-        if(Q != null){
-            for(int[] k:valid){
-                double qValue = Q[from[0]][from[1]][getDirection(from,k)];
-                if(qValue > max){
-                    max = qValue;
-                    ret = k;
-                }
-                if(qValue == max){ // pick randomly
-                    int randomInt = randomInt(1,r);
-                    if(randomInt == 1){ // replace
-                        max = qValue;
-                        ret = k;
-                    }
-                }
-            }
-        }else{ // if q is null pick randomly as well
-            int randomInt = 0 + (int)(Math.random()*valid.size());
-            ret = valid.get(randomInt);
+
+        ArrayList<int[]> validCells = getValidCells(from[0],from[1],maze);
+        double maxQValue = getMaxQValue(from, validCells, Q);
+        ArrayList<int[]> cellsWithMaxQValue = getCellsWithMaxQValue(from, validCells, Q);
+
+        int numChoices = cellsWithMaxQValue.size();
+
+        if (numChoices == 0) {
+            throw new MazeException("No choices exist for moving from " + from[0] + ", " + from[1]);
         }
-        return ret;
+
+        int[] maxQCell = pickCellAtRandom(cellsWithMaxQValue);
+        if (maxQCell[0] == from[0] && maxQCell[1] == from[1]) {
+            throw new MazeException("from and max q cell are same");
+        }
+        return maxQCell;
     }
 
-    protected double maxQVal(int x, int y, double[][][] Q) {
+    /**
+     * Given list of cells & starting point, return array list of cells that have maxQValue.
+     * @param from
+     * @param cells
+     * @param Q
+     * @return
+     * @throws MazeException
+     */
+    private ArrayList<int[]> getCellsWithMaxQValue(int[] from, ArrayList<int[]> cells, double[][][] Q) throws MazeException {
+        ArrayList<int[]> maxQValueCells = new ArrayList<>();
+
+        double maxQValue = getMaxQValue(from, cells, Q);
+        for (int[] cell:cells) {
+            double qValue = getQValueForTransition(from, cell, Q);
+            if (qValue >= maxQValue) {
+                maxQValueCells.add(cell);
+            }
+        }
+
+        return maxQValueCells;
+    }
+
+    /**
+     * Given list of cells, return max Q value of cells in that list.
+     * @param from
+     * @param cells
+     * @param Q
+     * @return
+     * @throws MazeException
+     */
+    private double getMaxQValue(int[] from, ArrayList<int[]> cells, double[][][] Q) throws MazeException {
+        double max = Double.NEGATIVE_INFINITY;
+        for (int[] cell:cells) {
+            double qValue = getQValueForTransition(from, cell, Q);
+            if (qValue > max) {
+                max = qValue;
+            }
+        }
+        return max;
+    }
+
+    private double getQValueForTransition(int[] from, int[] to, double[][][] Q) throws MazeException {
+        Direction direction = getDirection(from, to);
+        int directionValue = getDirectionValue(direction);
+        double qValue = Q[from[0]][from[1]][directionValue];
+        return qValue;
+    }
+
+    // Given list of cells, pick one at random from list
+    private int[] pickCellAtRandom(ArrayList<int[]> cells) {
+        int randomInt = 0 + (int)(Math.random()*(cells.size()));
+        return cells.get(randomInt);
+    }
+
+    public int getDirectionValue(Direction direction) throws MazeException {
+        switch(direction) {
+            case UP:
+                return 0;
+            case RIGHT:
+                return 1;
+            case DOWN:
+                return 2;
+            case LEFT:
+                return 3;
+        }
+        throw new MazeException("Direction could not be found.");
+    }
+
+    protected double maxQVal(int x, int y, double[][][] Q) throws MazeException {
         double max = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < 4; i++) {
             double val = Q[x][y][i];
@@ -147,7 +218,12 @@ public class LearnerUtils {
                 max = val;
             }
         }
-        return max;
+
+        if (max > Double.NEGATIVE_INFINITY) {
+            return max;
+        } else {
+            throw new MazeException("Max q value is negative infinity...");
+        }
     }
 
     /**
@@ -171,12 +247,12 @@ public class LearnerUtils {
     }
 
     protected int[] greedy(int[] cell, double[][] maze, double[][][] Q, double epsilon) throws MazeException {
-        int randomNum = randomInt(100, new Random());
+        double randomNum = randomInt(100, new Random())/100.0;
         if(randomNum < epsilon) {
             ArrayList<int[]> validCells = getValidCells(cell[0],cell[1],maze);
             int randomNum2 = randomInt(validCells.size(),new Random());
             return validCells.get(randomNum2);
-        }else {
+        } else {
             return maxQCell(cell,maze,Q);
         }
     }
