@@ -74,8 +74,8 @@ public class QLearner {
         for(int i = 0; i < numRuns; i++) {
             int steps = 0;
 
-            int xStart = useFirstEpisode ? 0 : getStartCell();
-            int yStart = useFirstEpisode ? 0: getStartCell();
+            int xStart = useFirstEpisode ? this.startX : getStartCell();
+            int yStart = useFirstEpisode ? this.startY : getStartCell();
             int[] current = new int[]{xStart, yStart};
             double trialReward = 0;
 
@@ -127,29 +127,39 @@ public class QLearner {
             if (trialReward > maxReward) {
                 maxReward = trialReward;
                 optimalPath = visited;
-
-                double calculatedReward = getReward(optimalPath, gridWorld);
-                if (useFirstEpisode) {
-                    if (visited.size() > 100) {
-//                        System.out.println("-------- num steps:" + visited.size());
-                    }
-                }
-//                System.out.println("Num steps in current max reward run " + visited.size());
-                // uncomment below for debugging
-//                System.out.println("Reward " + maxReward);
-//                printPath(visited, gridWorld);
-//                System.out.println("----------------- Visited " + visited.size());
-//                System.out.println("----------------- Calculated reward " + calculatedReward);
-//                printQ();
-//                this.currentMaxReward = calculatedReward;
             }
             log.add(steps);
         }
         return maxReward;
     }
 
+    /**
+     * return random int in [min,max)
+     * @param min
+     * @param max
+     * @return
+     */
+    private int getRandomInt(int min, int max) {
+        int randomNum = min + (int)(Math.random() * max);
+        return randomNum;
+    }
+
+    public int[] setRandomStartCell() {
+        int startX = this.getStartCell();
+        int startY = this.getStartCell();
+        this.startX = startX;
+        this.startY = startY;
+        int[] randomStartCell = {startX, startY};
+        return randomStartCell;
+    }
+
+    public void setSpecificStartSell(int startX, int startY) {
+        this.startX = startX;
+        this.startY = startY;
+    }
+
     private int getStartCell() {
-        int randomNum = 0 + (int)(Math.random() * 4);
+        int randomNum = 0 + (int)(Math.random() * 5);
         return randomNum;
     }
 
@@ -323,6 +333,10 @@ public class QLearner {
 
     public double getStepGamma() {
         return stepGamma;
+    }
+
+    public void setEpsilon(double epsilon) {
+        this.epsilon = epsilon;
     }
 
     public void setStepGamma(double stepGamma) {
